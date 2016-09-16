@@ -1,0 +1,43 @@
+{
+    "resourceType" : "Patient",
+    "identifier" : [ {
+        "value" : "12345${D6}"
+    } ],
+    "active" : true,
+    "name" : [ {
+        "family" : [ "Chalmers${C6}" ],
+        "given" : [ "Peter${C6}", "James${C6}" ]
+    } ],
+    "telecom" : [ {
+        "use" : "home"
+    }, {
+        "value" : "(0${D1}) ${D4} ${D4}"
+    } ],
+    "gender" : "male",
+    "birthDate" : "1974-12-25",
+    "address" : [ {
+        "line" : [ "${D3} Erewhon${C6} Rd" ],
+        "city" : "Pleasant Valley${C6}",
+        "state" : "Vic${C6}",
+        "postalCode" : "3999"
+    } ],
+    "contact" : [ {
+        "relationship" : [ {
+            "coding" : [ {
+                "system" : "http://hl7.org/fhir/v2/0131",
+                "code" : "CP"
+            } ]
+        } ],
+        "telecom" : [ {
+            "system" : "phone",
+            "value" : "+33 (237) 998327"
+        } ],
+        "gender" : "female",
+        "period" : {
+            "start" : "2012"
+        }
+    } ],
+    "managingOrganization" : {
+        "reference" : "Organization/1"
+    }
+}

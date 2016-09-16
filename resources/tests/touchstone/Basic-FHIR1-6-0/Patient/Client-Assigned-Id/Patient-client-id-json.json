@@ -1,0 +1,439 @@
+{
+  "resourceType": "TestScript",
+  "status": "draft",
+  "profile": [
+    {
+      "reference": "http:\/\/hl7.org\/fhir\/StructureDefinition\/Bundle",
+      "id": "bundle-profile"
+    },
+    {
+      "reference": "http:\/\/hl7.org\/fhir\/StructureDefinition\/Patient",
+      "id": "resource-profile"
+    }
+  ],
+  "date": "2016-08-26",
+  "copyright": "\u00a9 AEGIS.net, Inc. 2015+",
+  "name": "FHIR Server Patient Basic Operation Tests - JSON - Client Assigned Resource Id",
+  "publisher": "AEGIS.net, Inc.",
+  "useContext": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US",
+          "display": "United States of America (the)"
+        }
+      ]
+    }
+  ],
+  "url": "http:\/\/wildfhir.aegis.net\/fhir\/TestScript\/Patient-client-id-json",
+  "id": "Patient-client-id-json",
+  "variable": [
+    {
+      "name": "createResourceId",
+      "sourceId": "resource-create",
+        "path": "$.identifier.value[0]"
+    },
+    {
+      "name": "createVersionId",
+      "sourceId": "create-read-response",
+        "path": "$.meta.versionId"
+    },
+    {
+      "name": "searchParamIdentifier",
+      "sourceId": "resource-create",
+        "path": "$.identifier.value[0]"
+    }
+  ],
+  "metadata": {
+    "capability": [
+      {
+        "conformance": {
+          "reference": "..\/_reference\/conformance\/PatientCreateDeleteReadUpdate.xml"
+        },
+        "description": "Create, Delete, Read, Update Operations",
+        "required": true,
+        "link": [
+          "http:\/\/hl7.org\/fhir\/http.html#create",
+          "http:\/\/hl7.org\/fhir\/http.html#delete",
+          "http:\/\/hl7.org\/fhir\/http.html#read",
+          "http:\/\/hl7.org\/fhir\/http.html#update"
+        ]
+      },
+      {
+        "conformance": {
+          "reference": "..\/_reference\/conformance\/PatientHistoryInstanceVread.xml"
+        },
+        "description": "History Instance, Vread Operations",
+        "required": true,
+        "link": [
+          "http:\/\/hl7.org\/fhir\/http.html#history",
+          "http:\/\/hl7.org\/fhir\/http.html#vread"
+        ]
+      },
+      {
+        "conformance": {
+          "reference": "..\/_reference\/conformance\/PatientSearchType.xml"
+        },
+        "description": "Search Type Operation",
+        "required": true,
+        "link": [
+          "http:\/\/hl7.org\/fhir\/http.html#search"
+        ]
+      }
+    ]
+  },
+  "requirements": "Patient Create, Delete, History, Read, Search, Update, Vread Operations",
+  "description": "FHIR Server Patient Basic Operation Tests - JSON - Client Assigned Resource Id - Create, Delete, History, Read, Search, Update, Vread.",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "email",
+          "value": "Touchstone_Support@aegis.net",
+          "use": "work"
+        }
+      ],
+      "name": "Touchstone Support"
+    }
+  ],
+  "fixture": [
+    {
+      "resource": {
+        "reference": "..\/_reference\/resources\/Patient-create.json"
+      },
+      "id": "resource-create"
+    },
+    {
+      "resource": {
+        "reference": "..\/_reference\/resources\/Patient-create-min.json"
+      },
+      "id": "resource-create-min"
+    },
+    {
+      "resource": {
+        "reference": "..\/_reference\/resources\/Patient-update.json"
+      },
+      "id": "resource-update"
+    },
+    {
+      "resource": {
+        "reference": "..\/_reference\/resources\/Patient-update-min.json"
+      },
+      "id": "resource-update-min"
+    }
+  ],
+  "setup": {
+    "action": [
+      {
+        "operation": {
+          "accept": "json",
+          "type": {
+            "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+            "code": "delete"
+          },
+          "resource": "Patient",
+          "description": "Use a conditional delete operation to insure the Patient does not exist on the server.",
+          "params": "?identifier=${searchParamIdentifier}",
+          "contentType": "json"
+        }
+      }
+    ]
+  },
+  "test": [
+    {
+      "name": "Step1-CreateNewPatient",
+      "id": "Step1-CreateNewPatient",
+      "description": "Create a new Patient in JSON format where the client assigns the resource id.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "update"
+            },
+            "sourceId": "resource-create",
+            "resource": "Patient",
+            "description": "Create Patient with client assigned resource id.",
+            "params": "\/${createResourceId}",
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "responseCode": "200,201",
+            "operator": "in"
+          }
+        },
+        {
+          "assert": {
+            "contentType": "json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step2-ReadPatient",
+      "id": "Step2-ReadPatient",
+      "description": "Read the Patient in JSON format created in step 1.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "read"
+            },
+            "contentType": "json",
+            "resource": "Patient",
+            "description": "Read using params element",
+            "params": "\/${createResourceId}",
+            "responseId": "create-read-response"
+          }
+        },
+        {
+          "assert": {
+            "response": "okay"
+          }
+        },
+        {
+          "assert": {
+            "validateProfileId": "resource-profile"
+          }
+        },
+        {
+          "assert": {
+            "minimumId": "resource-create-min"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step3-UpdatePatient",
+      "id": "Step3-UpdatePatient",
+      "description": "Update the Patient in JSON format created in step 1 then Read it again for verification.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "update"
+            },
+            "sourceId": "resource-update",
+            "resource": "Patient",
+            "contentType": "json",
+            "params": "\/${createResourceId}",
+            "responseId": "update-response"
+          }
+        },
+        {
+          "assert": {
+            "responseCode": "200,201",
+            "operator": "in"
+          }
+        },
+        {
+          "assert": {
+            "warningOnly": "true",
+            "operator": "notEmpty",
+            "headerField": "Location"
+          }
+        },
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "read"
+            },
+            "resource": "Patient",
+            "contentType": "json",
+            "params": "\/${createResourceId}"
+          }
+        },
+        {
+          "assert": {
+            "validateProfileId": "resource-profile"
+          }
+        },
+        {
+          "assert": {
+            "minimumId": "resource-update-min",
+            "description": "Confirm that read returns updated version and that update did not delete previously created fields."
+          }
+        },
+        {
+          "assert": {
+            "warningOnly": "true",
+            "description": "Confirm that the resource version is present. Warning only as the server may not support versioning.",
+              "path": "$.meta.versionId",
+            "operator": "notEmpty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step4-PatientHistoryInstance",
+      "id": "Step4-PatientHistoryInstance",
+      "description": "Retrieve the updated Patient instance's history in JSON format.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "params": "\/${createResourceId}\/_history",
+            "resource": "Patient",
+            "contentType": "json",
+            "description": "Retrieve the history for a single, known Patient using the known identifier."
+          }
+        },
+        {
+          "assert": {
+            "response": "okay"
+          }
+        },
+        {
+          "assert": {
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "resource": "Bundle"
+          }
+        },
+        {
+          "assert": {
+            "value": "1",
+            "description": "Confirm that there is more than one record returned.",
+            "path": "$.Bundle.total",
+            "operator": "greaterThan"
+          }
+        },
+        {
+          "assert": {
+            "minimumId": "resource-update-min",
+            "description": "Confirm that returned bundle first entry contains the most recent updated version of the Patient."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step5-PatientVersionRead",
+      "id": "Step5-PatientVersionRead",
+      "description": "Retrieve a specific version of a Patient instance in JSON format.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "vread"
+            },
+            "resource": "Patient",
+            "description": "Retrieve initially created version of the Patient instance.",
+            "params": "\/${createResourceId}\/_history\/${createVersionId}",
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "response": "okay"
+          }
+        },
+        {
+          "assert": {
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "resource": "Patient"
+          }
+        },
+        {
+          "assert": {
+            "minimumId": "resource-create-min",
+            "description": "Confirm that the response contains the created version of the Patient."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step6-PatientSearchType",
+      "id": "Step6-PatientSearchType",
+      "description": "Search for Patient resources in JSON format with a identifier = ${searchParamIdentifier}.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "search"
+            },
+            "resource": "Patient",
+            "description": "Search for the Patient by identifier.",
+            "params": "?identifier=${searchParamIdentifier}",
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "response": "okay"
+          }
+        },
+        {
+          "assert": {
+            "contentType": "json"
+          }
+        },
+        {
+          "assert": {
+            "resource": "Bundle"
+          }
+        },
+        {
+          "assert": {
+            "value": "0",
+            "description": "Confirm that there is at least one record returned. There could be other Patient records returned.",
+            "path": "$.Bundle.total",
+            "operator": "greaterThan"
+          }
+        },
+        {
+          "assert": {
+            "minimumId": "resource-update-min",
+            "description": "Confirm that returned bundle first entry contains the most recent updated version of the Patient."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Step7-PatientDelete",
+      "id": "Step7-PatientDelete",
+      "description": "Delete a Patient instance in JSON format.",
+      "action": [
+        {
+          "operation": {
+            "accept": "json",
+            "type": {
+              "system": "http:\/\/hl7.org\/fhir\/testscript-operation-codes",
+              "code": "delete"
+            },
+            "resource": "Patient",
+            "description": "Delete the Patient instance.",
+            "contentType": "json",
+            "targetId": "update-response"
+          }
+        },
+        {
+          "assert": {
+            "responseCode": "200,204",
+            "operator": "in"
+          }
+        }
+      ]
+    }
+  ]
+}
