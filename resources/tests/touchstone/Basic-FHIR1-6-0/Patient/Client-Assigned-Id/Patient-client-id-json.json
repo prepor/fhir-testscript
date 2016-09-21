@@ -307,7 +307,7 @@
           "assert": {
             "value": "1",
             "description": "Confirm that there is more than one record returned.",
-            "path": "$.Bundle.total",
+            "path": "$.total",
             "operator": "greaterThan"
           }
         },
@@ -397,7 +397,7 @@
           "assert": {
             "value": "0",
             "description": "Confirm that there is at least one record returned. There could be other Patient records returned.",
-            "path": "$.Bundle.total",
+            "path": "$.total",
             "operator": "greaterThan"
           }
         },

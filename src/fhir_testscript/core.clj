@@ -98,13 +98,16 @@
                  "create" :post
                  "update" :put
                  ("read" "vread" "search") :get
-                 "delete" :delete)
+                 "delete" :delete
+                 :get)
         resource-type (cond
                         (:targetId op) (type-from-fixture ctx (:targetId op))
                         (:sourceId op) (type-from-fixture ctx (:sourceId op))
                         (:resource op) (:resource op))
         id (cond
              (:targetId op) (id-from-fixture ctx (:targetId op))
+             ;; this is not by spec, but touchstone relies on this
+             (and (= "update" (-> op :type :code)) (:params op)) nil
              (:sourceId op) (id-from-fixture ctx (:sourceId op)))
         vid (cond
               (:targetId op) (vid-from-fixture ctx (:targetId op)))
@@ -166,8 +169,9 @@
     (when (and (::exception-on-failure op)
                (= :failed (:status res)))
       (throw (ex-info "Failed operation" {::ctx ctx :failed-operation res})))
-    (prn "---RES" op res)
     [(save-operation-in-fixtures ctx op res) res]))
+
+
 
 (defn execute-operator [ctx operator expected value]
   (case operator
@@ -184,17 +188,17 @@
                     {:type :contains
                      :value value})
     "in" (let [s (set (str/split expected #","))]
-           (when (not (s value)) {:type :not-included
-                                  :value value
-                                  :expected s}))
+           (when (not (s (str value))) {:type :not-included
+                                        :value value
+                                        :expected s}))
     "notIn" (let [s (set (str/split expected #","))]
               (when (s value) {:type :included
                                :value value
                                :expected s}))
-    "greaterThan" (when (not (< value expected)) {:type :not-greater
+    "greaterThan" (when (not (< expected value)) {:type :not-greater
                                                   :value value
                                                   :expected expected})
-    "lessThan" (when (not (< expected value)) {:type :not-less
+    "lessThan" (when (not (< value expected)) {:type :not-less
                                                :value value
                                                :expected expected})
     "empty" (when (not (empty? value)) {:type :not-empty
@@ -205,8 +209,11 @@
                                  :value value
                                  :expected expected})))
 
+(defn raw-content-type [ct]
+  (->> (str/split ct #";") (first)))
+
 (defn assert-content-type [ctx last-result op]
-  (let [v (-> last-result :headers :content-type (content-type-mapping :none))
+  (let [v (-> last-result :headers :content-type (raw-content-type) (content-type-mapping :none))
         expected (keyword (:contentType op))]
     (execute-operator ctx (:operator op) expected v)))
 
@@ -217,16 +224,15 @@
       (throw (ex-info "Unknown target for assert" {::ctx ctx :assert op})))
     (execute-operator ctx (:operator op)
                       (:value op)
-                      (get-in target [:headers (:headerField op)]))))
+                      (get-in target [:headers (-> (:headerField op) (str/lower-case) (keyword))]))))
 
 (defn assert-minimum-id [ctx last-result op]
-  (let [expected (-> (get-executed-fixture ctx (:minimumId op))
-                     :resource
-                     (dissoc :id))
-        v (-> last-result
-              :resource
-              (dissoc :id))]
-    (when (not= expected v)
+  (let [expected (-> (get-executed-fixture ctx (:minimumId op)) :resource)
+        v (-> last-result :resource)
+        compare (fn [expected value]
+                  ;; FIXME simplified version. Should be recursive
+                  (every? #(= (expected %) (value %)) (keys expected)))]
+    (when (compare expected v)
       ;; TODO diff
       {:type :not-equal})))
 
@@ -273,11 +279,12 @@
                     (http-status->code (:http-status last-result))))
 
 (defn assert-response-code [ctx last-result op]
-  (execute-operator ctx (:operator op) (Long. (:responseCode op)) (:http-status last-result)))
+  (let [expected (try (Long. (:responseCode op)) (catch Exception e (:responseCode op)))]
+    (execute-operator ctx (:operator op) expected (:http-status last-result))))
 
 (defn assert-validate-profile-id [ctx last-result op]
   ;; TODO profile assertion
-  (assert false))
+  nil)
 
 (def assertions
   {:contentType assert-content-type
@@ -306,11 +313,11 @@
       (cond
         (:assert action)
         ;; TODO warningOnly support
-        (if-let [err (and (not ignore-fails?) (execute-assert ctx (:assert action) last-result))]
+        (if-let [err (and (not ignore-fails?) (execute-assert ctx last-result (:assert action)))]
           [ctx
            {:status :failed
             :reason {:type :assert-failed
-                     :assert action
+                     :assert (:assert action)
                      :data err}}]
           (recur actions ctx last-result))
 
