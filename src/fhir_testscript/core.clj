@@ -450,13 +450,12 @@
           (execute-teardown (-> body :teardown :action))
           (unload-fixtures)
           (generate-report))
-      ;; (catch Exception e
-      ;;   (if-let [ctx (::ctx (ex-data e))]
-      ;;     (do (execute-teardown ctx (-> body :teardown :action))
-      ;;         (unload-fixtures ctx)
-      ;;         (-> ctx
-      ;;             (assoc-in [::result/result ::result/status] :failed)
-      ;;             (assoc-in [::result/result ::error/error] #::error{:msg (.getMessage e)
-      ;;                                                                :data (dissoc (ex-data e) ::ctx)})))
-      ;;     (throw e)))
-      )))
+      (catch Exception e
+        (if-let [ctx (::ctx (ex-data e))]
+          (do (execute-teardown ctx (-> body :teardown :action))
+              (unload-fixtures ctx)
+              (-> ctx
+                  (assoc-in [::result/result ::result/status] :failed)
+                  (assoc-in [::result/result ::error/error] #::error{:msg (.getMessage e)
+                                                                     :data (dissoc (ex-data e) ::ctx)})))
+          (throw e))))))
